@@ -63,6 +63,10 @@ module.exports = {
             new ButtonBuilder()
                 .setLabel("Support Server")
                 .setURL("https://discord.gg/MRjEUhDCpZ")
+                .setStyle(ButtonStyle.Link),
+            new ButtonBuilder()
+                .setLabel("⭐ Vote")
+                .setURL("https://top.gg/bot/1502977716196999309?s=0b4dc71b855ce")
                 .setStyle(ButtonStyle.Link)
         );
 
@@ -70,7 +74,7 @@ module.exports = {
 
         await interaction.reply({
             components: [container],
-            flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+            flags: MessageFlags.IsComponentsV2,
         });
     },
 };

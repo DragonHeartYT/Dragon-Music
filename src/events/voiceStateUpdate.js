@@ -59,6 +59,7 @@ module.exports = {
 
 async function resetChatPlayIfActive(client, guildId) {
     const guildData = getGuildData(guildId);
+    // Reset ChatPlay to idle
     if (guildData.chatPlayChannelId && guildData.chatPlayMessageId) {
         try {
             const channel = client.channels.cache.get(guildData.chatPlayChannelId);
@@ -72,6 +73,18 @@ async function resetChatPlayIfActive(client, guildId) {
             }
         } catch (err) {
             // message may have been deleted
+        }
+    }
+    // Delete regular /play player message
+    else if (guildData.playerMessageId && guildData.playerChannelId) {
+        try {
+            const channel = client.channels.cache.get(guildData.playerChannelId);
+            if (channel) {
+                const msg = await channel.messages.fetch(guildData.playerMessageId);
+                await msg.delete();
+            }
+        } catch (err) {
+            // message already deleted
         }
     }
 }

@@ -1,7 +1,8 @@
-const { MessageFlags, AttachmentBuilder } = require("discord.js");
+const { MessageFlags, AttachmentBuilder, ContainerBuilder, TextDisplayBuilder } = require("discord.js");
 const { getGuildData, clearUpdateInterval } = require("../utils/playerStore");
 const { createNowPlayingContainer, createChatPlayIdleContainer, createChatPlayNowPlayingContainer } = require("../utils/components");
 const { generateMusicCard } = require("../utils/musicard");
+const { recordIncident } = require("../utils/incidents");
 const path = require("path");
 const fs = require("fs");
 
@@ -117,6 +118,13 @@ function setupPlayerHandler(client) {
     // --- Node Error ---
     client.riffy.on("nodeError", (node, error) => {
         console.error(`[Musicify] Node "${node.name}" error:`, error.message);
+        recordIncident("Lavalink", `Node error: ${error.message.substring(0, 50)}`);
+    });
+
+    // --- Node Disconnect ---
+    client.riffy.on("nodeDisconnect", (node) => {
+        console.warn(`[Musicify] Node "${node.name}" disconnected.`);
+        recordIncident("Lavalink", "Node disconnected");
     });
 
     // --- Node Reconnected (Riffy built-in auto-reconnect) ---
@@ -262,10 +270,42 @@ function setupPlayerHandler(client) {
     });
 
     // --- Player Disconnect ---
-    client.riffy.on("playerDisconnect", (player) => {
+    client.riffy.on("playerDisconnect", async (player) => {
         const guildData = getGuildData(player.guildId);
         clearUpdateInterval(guildData);
         stopVoiceChannelMonitoring(player.guildId);
+        
+        // Reset ChatPlay to idle if active (safety net for force disconnects)
+        if (guildData.chatPlayChannelId && guildData.chatPlayMessageId) {
+            try {
+                const { createChatPlayIdleContainer } = require("../utils/components");
+                const { MessageFlags } = require("discord.js");
+                const channel = client.channels.cache.get(guildData.chatPlayChannelId);
+                if (channel) {
+                    const msg = await channel.messages.fetch(guildData.chatPlayMessageId);
+                    await msg.edit({
+                        components: [createChatPlayIdleContainer()],
+                        attachments: [],
+                        flags: MessageFlags.IsComponentsV2,
+                    });
+                }
+            } catch (err) {
+                // message may have been deleted
+            }
+        }
+        // Delete regular player message if it exists (normal /play sessions)
+        else if (guildData.playerMessageId && guildData.playerChannelId) {
+            try {
+                const channel = client.channels.cache.get(guildData.playerChannelId);
+                if (channel) {
+                    const msg = await channel.messages.fetch(guildData.playerMessageId);
+                    await msg.delete();
+                }
+            } catch (err) {
+                // message already deleted
+            }
+        }
+        
         guildData.playerMessageId = null;
         guildData.playerChannelId = null;
         guildData.suggestions = [];
@@ -339,21 +379,29 @@ function checkVoiceChannelState(client, guildId) {
         if (guildData.playerChannelId) {
             const channel = client.channels.cache.get(guildData.playerChannelId);
             if (channel) {
-                channel.send("⏸️ Music paused - voice channel is empty. I'll resume when someone joins!").catch(() => {});
+                const container = new ContainerBuilder();
+                container.addTextDisplayComponents(
+                    new TextDisplayBuilder().setContent("### ⏸️ Music paused\n-# Voice channel is empty. I'll resume when someone joins!")
+                );
+                channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
             }
         }
     }
-    
+
     // Auto-resume when users rejoin
     if (hasUsers && guildData.wasPaused && player.paused) {
         player.pause(false);
         guildData.wasPaused = false;
-        
+
         // Send notification to text channel
         if (guildData.playerChannelId) {
             const channel = client.channels.cache.get(guildData.playerChannelId);
             if (channel) {
-                channel.send("▶️ Music resumed - welcome back!").catch(() => {});
+                const container = new ContainerBuilder();
+                container.addTextDisplayComponents(
+                    new TextDisplayBuilder().setContent("### ▶️ Music resumed\n-# Welcome back!")
+                );
+                channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
             }
         }
     }

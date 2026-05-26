@@ -10,6 +10,8 @@ const {
     ButtonBuilder,
     ButtonStyle,
 } = require("discord.js");
+const config = require("../../config");
+const { formatIncidents } = require("../utils/incidents");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("status")
@@ -25,7 +27,7 @@ module.exports = {
                 : Object.values(nodes || {});
 
         const connectedNodes = nodeList.filter(node => node.connected || node.isConnected).length;
-        const totalNodes = nodeList.length;
+        const totalNodes = config.nodes.length;
         const botPing = client.ws?.ping ?? 0;
 
         let statusEmoji = "🟢";
@@ -45,24 +47,18 @@ module.exports = {
         const uptimeMinutes = Math.floor((uptimeSeconds % 3600) / 60);
         const startTime = new Date(Date.now() - uptimeSeconds * 1000);
 
-        // Calculate 7-day history labels (relative days ago)
-        const dayLabels = ['-6', '-5', '-4', '-3', '-2', '-1', ' 0'].join(' ');
-
         const container = new ContainerBuilder();
 
         container.addTextDisplayComponents(
-            new TextDisplayBuilder().setContent(
-                `## ${statusEmoji} ${statusText}`
-            )
+            new TextDisplayBuilder().setContent(`## ${statusEmoji} ${statusText}`)
         );
 
         container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
 
         container.addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-                `**7-day History**\n` +
-                `-# ${dayLabels}\n` +
-                `-# 🟢🟢🟢🟢🟢🟢🟢`
+                `**Recent Incidents**\n` +
+                formatIncidents(4)
             )
         );
 
@@ -73,37 +69,32 @@ module.exports = {
             .setURL("https://discord.gg/MRjEUhDCpZ")
             .setStyle(ButtonStyle.Link);
 
-        container.addActionRowComponents(new ActionRowBuilder().addComponents(supportButton));
+        const voteButton = new ButtonBuilder()
+            .setLabel("⭐ Vote")
+            .setURL("https://top.gg/bot/1502977716196999309?s=0b4dc71b855ce")
+            .setStyle(ButtonStyle.Link);
+
+        container.addActionRowComponents(new ActionRowBuilder().addComponents(supportButton, voteButton));
 
         container.addSeparatorComponents(new SeparatorBuilder().setDivider(false));
+
+        const startTimestamp = Math.floor(startTime.getTime() / 1000);
 
         container.addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
                 `**Uptime**\n` +
-                `-# 🕒 <t:${Math.floor(startTime.getTime() / 1000)}:R>`
+                `-# 🕒 <t:${startTimestamp}:f> (<t:${startTimestamp}:R>)\n` +
+                `-# *Times shown in your local timezone*`
             )
         );
 
         container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
 
-        if (!nodeList || nodeList.length === 0) {
-            container.addTextDisplayComponents(
-                new TextDisplayBuilder().setContent(
-                    "### Lavalink Node Stats\n" +
-                    "-# *No Lavalink nodes configured.*"
-                )
-            );
-
-            return interaction.reply({
-                components: [container],
-                flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
-            });
-        }
-
+        // Lavalink Node Stats
         container.addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
                 "### Lavalink Node Stats\n" +
-                `-# ${nodeList.length} node${nodeList.length === 1 ? "" : "s"} available`
+                `-# ${connectedNodes}/${totalNodes} nodes available`
             )
         );
 
@@ -113,20 +104,21 @@ module.exports = {
             .setMinValues(1)
             .setMaxValues(1);
 
-        for (let i = 0; i < nodeList.length; i++) {
-            const node = nodeList[i];
-            const connected = node.connected || node.isConnected || false;
+        for (let i = 0; i < config.nodes.length; i++) {
+            const configNode = config.nodes[i];
+            const connectedNode = nodeList.find(n => n.name === configNode.name);
+            const connected = connectedNode?.connected || connectedNode?.isConnected || false;
             const nodeStatusEmoji = connected ? "🟢" : "🔴";
+            const displayName = i === 0 ? "Main Node" : `Node ${i}`;
             selectMenu.addOptions(
                 new StringSelectMenuOptionBuilder()
-                    .setLabel(`${node.name || `Node ${i + 1}`}`)
+                    .setLabel(displayName)
                     .setDescription(`${nodeStatusEmoji} ${connected ? "Connected" : "Disconnected"}`)
                     .setValue(`node_${i}`)
             );
         }
 
         const selectRow = new ActionRowBuilder().addComponents(selectMenu);
-
         container.addActionRowComponents(selectRow);
 
         return interaction.reply({

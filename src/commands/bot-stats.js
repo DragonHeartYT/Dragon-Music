@@ -18,11 +18,9 @@ module.exports = {
 
         const container = new ContainerBuilder();
 
-        // --- Header with bot avatar ---
         const header = new SectionBuilder()
             .addTextDisplayComponents(
-                new TextDisplayBuilder().setContent("### 📊 Bot Statistics"),
-                new TextDisplayBuilder().setContent(`-# ${client.user.tag}`)
+                new TextDisplayBuilder().setContent("### <:Musicify_Logo:1504329028356673536> Statistics")
             )
             .setThumbnailAccessory(
                 new ThumbnailBuilder().setURL(
@@ -34,44 +32,37 @@ module.exports = {
 
         container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
 
-        // --- Uptime ---
-        const uptime = process.uptime();
-        const days = Math.floor(uptime / 86400);
-        const hours = Math.floor((uptime % 86400) / 3600);
-        const minutes = Math.floor((uptime % 3600) / 60);
-        const seconds = Math.floor(uptime % 60);
-        const uptimeStr = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        const uptimeSeconds = process.uptime();
+        const startTime = new Date(Date.now() - uptimeSeconds * 1000);
+        const startTimestamp = Math.floor(startTime.getTime() / 1000);
 
-        // --- Memory ---
         const mem = process.memoryUsage();
         const memUsed = (mem.heapUsed / 1024 / 1024).toFixed(1);
         const memTotal = (mem.heapTotal / 1024 / 1024).toFixed(1);
         const memRSS = (mem.rss / 1024 / 1024).toFixed(1);
 
-        // --- Stats ---
         const totalGuilds = client.guilds.cache.size;
         const totalUsers = client.guilds.cache.reduce((a, g) => a + g.memberCount, 0);
         const totalChannels = client.channels.cache.size;
         const activePlayers = client.riffy.players?.size || 0;
         const totalNodes = client.riffy.nodes?.length || client.riffy.nodes?.size || 0;
 
-        // --- General ---
         container.addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
                 "**Bot ID**\n" +
-                `-# ${client.user.id}\n` +
+                `-# \`${client.user.id}\`\n` +
                 "**Uptime**\n" +
-                `-# ${uptimeStr}\n` +
+                `-# <t:${startTimestamp}:f> (<t:${startTimestamp}:R>)\n` +
+                `-# *Times shown in your local timezone*\n` +
                 "**Ping**\n" +
                 `-# ${client.ws.ping}ms\n` +
                 "**Runtime**\n" +
-                `-# Node.js ${process.version} · discord.js v${require("discord.js").version}`
+                `-# [Node.js ${process.version}](https://nodejs.org/) · [discord.js v${require("discord.js").version}](https://discord.js.org/)`
             )
         );
 
         container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
 
-        // --- Servers & Players ---
         container.addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
                 "**Guilds**\n" +
@@ -89,7 +80,6 @@ module.exports = {
 
         container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
 
-        // --- Memory ---
         container.addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
                 "**Heap Used**\n" +

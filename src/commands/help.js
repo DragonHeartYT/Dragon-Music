@@ -172,11 +172,18 @@ function addHomePage(container, getCmd) {
         )
     );
 
-    container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-            "-# Musicify is [open source](https://github.com/codebymitch/Musicify)."
+    const openSourceSection = new SectionBuilder()
+        .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent("-# Musicify is [open source](https://github.com/codebymitch/Musicify).")
         )
-    );
+        .setButtonAccessory(
+            new ButtonBuilder()
+                .setLabel("⭐ Vote")
+                .setURL("https://top.gg/bot/1502977716196999309?s=0b4dc71b855ce")
+                .setStyle(ButtonStyle.Link)
+        );
+
+    container.addSectionComponents(openSourceSection);
 }
 
 function addMusicPage(container, getCmd) {

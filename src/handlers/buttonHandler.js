@@ -3,6 +3,7 @@ const { getGuildData } = require("../utils/playerStore");
 const { createNowPlayingContainer, createChatPlayNowPlayingContainer, createQueueContainer, createChatPlayIdleContainer } = require("../utils/components");
 const { generateMusicCard } = require("../utils/musicard");
 const { addNodeDetails } = require("../utils/nodeDetails");
+const config = require("../../config");
 
 /**
  * Handle all button and select menu interactions from the player container
@@ -57,50 +58,55 @@ async function handleButtonInteraction(client, interaction) {
         const selectedValue = interaction.values[0]; // "node_0", "node_1", etc
         const nodeIndex = parseInt(selectedValue.replace("node_", ""), 10);
 
+        // Get configured node from config (source of truth)
+        const configNode = config.nodes[nodeIndex];
+        if (!configNode) return;
+
+        // Find connected node if available
         const nodes = client.riffy.nodeMap;
         const nodeList = Array.isArray(nodes)
             ? nodes
             : nodes instanceof Map
               ? [...nodes.values()]
               : Object.values(nodes || {});
-
-        const selectedNode = nodeList[nodeIndex];
-        if (!selectedNode) return;
+        const connectedNode = nodeList.find(n => n.name === configNode.name);
+        const connected = connectedNode?.connected || connectedNode?.isConnected || false;
 
         const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
-        const connected = selectedNode.connected || selectedNode.isConnected || false;
         const statusEmoji = connected ? "🟢" : "🔴";
         const statusText = connected ? "Connected" : "Disconnected";
 
         const container = new ContainerBuilder();
 
+        // Use generic name in header
+        const displayName = nodeIndex === 0 ? "Main Node" : `Node ${nodeIndex}`;
+
         // Node header
         container.addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-                `## ${statusEmoji} ${selectedNode.name || `Node ${nodeIndex + 1}`}\n` +
+                `## ${statusEmoji} ${displayName}\n` +
                 `-# ${statusText}`
             )
         );
 
         container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
 
-        if (!connected || !selectedNode.stats) {
+        if (!connected || !connectedNode?.stats) {
             container.addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(
-                    `-# Rest Version: ${selectedNode.restVersion || "N/A"}\n\n` +
                     "-# *Node is offline — no stats available.*"
                 )
             );
         } else {
-            const stats = selectedNode.stats;
+            const stats = connectedNode.stats;
             const cpuCores = stats.cpu?.cores || "N/A";
             const sysLoad = stats.cpu ? `${(stats.cpu.systemLoad * 100).toFixed(1)}%` : "N/A";
             const llLoad = stats.cpu ? `${(stats.cpu.lavalinkLoad * 100).toFixed(1)}%` : "N/A";
 
             container.addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(
-                    `-# Rest Version: ${selectedNode.restVersion || "N/A"}\n\n` +
+                    `-# Rest Version: ${connectedNode.restVersion || "N/A"}\n\n` +
                     `**Players**\n` +
                     `-# 🎶 Active: ${stats.playingPlayers || 0}  •  📻 Total: ${stats.players || 0}\n\n` +
                     `**CPU**\n` +
@@ -135,6 +141,7 @@ async function handleButtonInteraction(client, interaction) {
         await interaction.deferUpdate();
 
         const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+        const { formatIncidents } = require("../utils/incidents");
 
         const nodes = client.riffy.nodeMap;
         const nodeList = Array.isArray(nodes)
@@ -144,7 +151,7 @@ async function handleButtonInteraction(client, interaction) {
               : Object.values(nodes || {});
 
         const connectedNodes = nodeList.filter(n => n.connected || n.isConnected).length;
-        const totalNodes = nodeList.length;
+        const totalNodes = config.nodes.length;
         const botPing = client.ws?.ping ?? 0;
         const uptimeSeconds = process.uptime();
         const startTime = new Date(Date.now() - uptimeSeconds * 1000);
@@ -152,23 +159,25 @@ async function handleButtonInteraction(client, interaction) {
         let statusEmoji = "🟢";
         let statusText = "All systems operational";
         if (connectedNodes === 0 || botPing > 300) {
-            statusEmoji = "�";
+            statusEmoji = "🔴";
             statusText = "Major system issues detected";
         } else if (connectedNodes < totalNodes || botPing > 100) {
             statusEmoji = "🟡";
             statusText = "Some systems experiencing issues";
         }
 
-        const dayLabels = ['-6', '-5', '-4', '-3', '-2', '-1', ' 0'].join(' ');
-
         const container = new ContainerBuilder();
 
         container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(`## ${statusEmoji} ${statusText}`)
+        );
+
+        container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+        container.addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-                `## ${statusEmoji} ${statusText}\n\n` +
-                `**7-day History**\n` +
-                `-# ${dayLabels}\n` +
-                `-# 🟢🟢🟢🟢🟢🟢🟢`
+                `**Recent Incidents**\n` +
+                formatIncidents(4)
             )
         );
 
@@ -179,14 +188,22 @@ async function handleButtonInteraction(client, interaction) {
             .setURL("https://discord.gg/MRjEUhDCpZ")
             .setStyle(ButtonStyle.Link);
 
-        container.addActionRowComponents(new ActionRowBuilder().addComponents(supportButton));
+        const voteButton = new ButtonBuilder()
+            .setLabel("⭐ Vote")
+            .setURL("https://top.gg/bot/1502977716196999309?s=0b4dc71b855ce")
+            .setStyle(ButtonStyle.Link);
+
+        container.addActionRowComponents(new ActionRowBuilder().addComponents(supportButton, voteButton));
 
         container.addSeparatorComponents(new SeparatorBuilder().setDivider(false));
+
+        const startTimestamp = Math.floor(startTime.getTime() / 1000);
 
         container.addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
                 `**Uptime**\n` +
-                `-# 🕒 <t:${Math.floor(startTime.getTime() / 1000)}:R>`
+                `-# 🕒 <t:${startTimestamp}:f> (<t:${startTimestamp}:R>)\n` +
+                `-# *Times shown in your local timezone*`
             )
         );
 
@@ -195,7 +212,7 @@ async function handleButtonInteraction(client, interaction) {
         container.addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
                 "### Lavalink Node Stats\n" +
-                `-# ${nodeList.length} node${nodeList.length === 1 ? "" : "s"} available`
+                `-# ${connectedNodes}/${totalNodes} nodes available`
             )
         );
 
@@ -205,13 +222,15 @@ async function handleButtonInteraction(client, interaction) {
             .setMinValues(1)
             .setMaxValues(1);
 
-        for (let i = 0; i < nodeList.length; i++) {
-            const node = nodeList[i];
-            const connected = node.connected || node.isConnected || false;
+        for (let i = 0; i < config.nodes.length; i++) {
+            const configNode = config.nodes[i];
+            const connectedNode = nodeList.find(n => n.name === configNode.name);
+            const connected = connectedNode?.connected || connectedNode?.isConnected || false;
             const nodeStatusEmoji = connected ? "🟢" : "🔴";
+            const displayName = i === 0 ? "Main Node" : `Node ${i}`;
             selectMenu.addOptions(
                 new StringSelectMenuOptionBuilder()
-                    .setLabel(`${node.name || `Node ${i + 1}`}`)
+                    .setLabel(displayName)
                     .setDescription(`${nodeStatusEmoji} ${connected ? "Connected" : "Disconnected"}`)
                     .setValue(`node_${i}`)
             );
