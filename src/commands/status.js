@@ -71,7 +71,7 @@ module.exports = {
 
         const voteButton = new ButtonBuilder()
             .setLabel("⭐ Vote")
-            .setURL("https://top.gg/bot/1502977716196999309?s=0b4dc71b855ce")
+            .setURL("https://top.gg/bot/1502977716196999309/vote")
             .setStyle(ButtonStyle.Link);
 
         container.addActionRowComponents(new ActionRowBuilder().addComponents(supportButton, voteButton));
