@@ -1,15 +1,13 @@
 module.exports = {
-nodes: [
-    {
-        Host: lavalink-v4.triniumhost.com
-        Port: 443,
-        Password: "free",
-        Secure: true,
-        name: "Main"
-    },
-    {
-    }
-],
+    nodes: [
+        {
+            Host: lavalinkv4.serenetia.com
+            Port: 443
+            Password: "https://discord.gg/CxsBjs5RAU"
+            Secure: true,
+            name: "Main"
+        }
+    ],
 
     defaultSearchPlatform: "ytmsearch",
     restVersion: "v4",
