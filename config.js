@@ -1,23 +1,23 @@
 module.exports = {
 nodes: [
     {
-        host: "lavalink-v4.triniumhost.com",
+        host: "89.106.84.59",
         password: "https://discord.gg/CxsBjs5RAU",
-        port: 443,
+        port: 4000,
         secure: true,
         name: "Main"
     },
     {
-        host: "lava-v4.millohost.my.id",
+        host: "sg1-nodelink.nyxbot.app",
         password: "https://discord.gg/CxsBjs5RAU",
-        port: 443,
+        port: 3000,
         secure: true,
         name: "Serenetia"
     },
     {
         host: "lavalink.jirayu.net",
         password: "https://discord.gg/CxsBjs5RAU",
-        port: 443,
+        port: 13592,
         secure: true,
         name: "Jirayu"
     },
@@ -29,9 +29,9 @@ nodes: [
         name: "MilloHost"
     },
     {
-        host: "lavalink-v4.triniumhost.com",
+        host: "lavalink.triniumhost.com",
         password: "https://discord.gg/CxsBjs5RAU",
-        port: 443,
+        port: 4333,
         secure: true,
         name: "TriniumHost"
     }
