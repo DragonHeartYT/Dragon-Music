@@ -30,7 +30,7 @@ nodes: [
     },
     {
         host: "lavalink-v4.triniumhost.com",
-        password: "https://discord.gg/CxsBjs5RAU",
+        password: "free",
         port: 443,
         secure: true,
         name: "TriniumHost"
