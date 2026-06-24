@@ -24,7 +24,7 @@ nodes: [
     {
         host: "lavalinkv4.serenetia.com",
         password: "https://discord.gg/CxsBjs5RAU",
-        port: 443,
+        port: 80,
         secure: true,
         name: "MilloHost"
     },
