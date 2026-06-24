@@ -2,28 +2,28 @@ module.exports = {
 nodes: [
     {
         host: "lava-v4.ajieblogs.eu.org",
-        password: "https://discord.gg/CxsBjs5RAU",
+        password: "https://dsc.gg/ajidevserver",
         port: 443,
         secure: true,
         name: "Main"
     },
     {
         host: "lavalinkv4.serenetia.com",
-        password: "https://discord.gg/CxsBjs5RAU",
+        password: "https://dsc.gg/ajidevserver",
         port: 443,
         secure: true,
         name: "Serenetia"
     },
     {
         host: "lavalink.jirayu.net",
-        password: "https://discord.gg/CxsBjs5RAU",
+        password: "youshallnotpass",
         port: 443,
         secure: true,
         name: "Jirayu"
     },
     {
         host: "lava-v4.millohost.my.id",
-        password: "https://discord.gg/CxsBjs5RAU",
+        password: "https://discord.gg/mjS5J2K3ep",
         port: 443,
         secure: true,
         name: "MilloHost"
